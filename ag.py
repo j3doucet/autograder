@@ -23,7 +23,7 @@ if len(sys.argv) < 2:
     print()
     print(" stats [usernames...]")
     print("     Display basic statistics about submissions")
-    
+
     print()
     print(" email [usernames...]")
     print("     Sends emails containing the AUTOGRADE.html reports to students as needed.")
@@ -35,7 +35,7 @@ if len(sys.argv) < 2:
     print()
     print(" emailClearCache [usernames...]")
     print("     Makes the autograder believe that no emails have been sent.")
-    
+
     print()
     print(" lock [usernames...]")
     print(" unlock [usernames...]")
@@ -53,7 +53,7 @@ if len(sys.argv) < 2:
     print(" viewgui username")
     print("     View autograder report via web browser.")
 
-    
+
     sys.exit(1)
 
 config = autograder.config()
@@ -86,7 +86,7 @@ def lock(dirs):
     changeLock(dirs, 1)
 def regrade(dirs):
     for thisDir in dirs:
-        agfile = os.path.join(thisDir, "AUTOGRADE.html")
+        agfile = os.path.join(thisDir, "AUTOGRADE.txt")
         if os.path.exists(agfile):
             os.unlink(agfile)
     # Whenever a new autograde report is generated, we change the
@@ -94,7 +94,7 @@ def regrade(dirs):
     # proactively do this so it is clear that an email message will
     # need to get sent.
     emailClearCache(dirs)
-            
+
 
 def emailClearCache(dirs):
     for thisDir in dirs:
@@ -120,7 +120,7 @@ def emailSent(dirs):
             json.dump(metadata, f, indent=4)
 
 
-                            
+
 def stats(dirs):
     score_list=[]
     print("%-12s %5s %9s %9s %14s %5s %5s %5s %5s" % ("name", "agPts", "agPtsOrig", "canvasPts", "SubmitTime", "atmpt", "late", "lock", "email"))
@@ -145,18 +145,18 @@ def stats(dirs):
         if 'autograderScorePreAdjustment' in metadata and os.path.exists(os.path.join(d, "AUTOGRADE.html")):
                 scoreOrig = "%9d" % metadata['autograderScorePreAdjustment']
 
-                
+
         canvasScore="    --- "
         if 'canvasSubmission' in metadata:
             canvasScore_string = metadata['canvasSubmission'].get('score', "0")
             if canvasScore_string:
                 canvasScore_int = int(canvasScore_string)
-                
-                if metadata['canvasSubmission']['grade_matches_current_submission'] == False:                
+
+                if metadata['canvasSubmission']['grade_matches_current_submission'] == False:
                     canvasScore = "%8d*"%canvasScore_int
                 else:
                     canvasScore = "%8d "%canvasScore_int
-            
+
 
 
         attempt=0
@@ -190,7 +190,7 @@ def stats(dirs):
             median  = "%.1f" % numpy.median(score_list)
     except ImportError:
         print("Install numpy for full statistics information.")
-        
+
     if len(score_list) > 0:
         print("Low/average/median/high score: %d/%s/%s/%d" % (min(score_list),
                                                               average, median,
@@ -275,7 +275,7 @@ def getSumOfAttempts():
             attempts += int(metadata['canvasSubmission'].get('attempt', 0))
 
     return attempts;
-    
+
 
 
 
@@ -349,8 +349,8 @@ def emailSend(dirs):
     emailLogout()
 
 
-    
-        
+
+
 # Get a list of subdirectories (each student submission will be in its own subdirectory)
 if not os.path.exists(subdirName):
     os.mkdir(subdirName);
@@ -371,13 +371,13 @@ elif sys.argv[1] == "unlock":
     else:
         unlock(dirs)
 elif sys.argv[1] == 'regrade':
-    os.chdir(subdirName)        
+    os.chdir(subdirName)
     if len(sys.argv) > 2:
         regrade(sys.argv[2:])
     else:
         regrade(dirs)
 elif sys.argv[1] == 'emailClearCache':
-    os.chdir(subdirName)        
+    os.chdir(subdirName)
     if len(sys.argv) > 2:
         emailClearCache(sys.argv[2:])
     else:
@@ -414,7 +414,7 @@ elif sys.argv[1] == 'downloadlate':
         print(" ag.py downloadlate   --> downloads all submissions (including late ones)")
         print(" Use the 'download' command to download a specific submission")
         exit(1)
-        
+
 elif sys.argv[1] == 'email':
     os.chdir(subdirName)
     if len(sys.argv) > 2:
@@ -452,9 +452,9 @@ elif sys.argv[1] == 'viewgui':
         print(" ag.py viewgui username")
         exit(1)
 
-        
-        
+
+
 else:
     print("Unknown action: %s" % sys.argv[1])
     exit(1)
-    
+

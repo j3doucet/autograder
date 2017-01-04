@@ -19,7 +19,7 @@ def compile_warning_errors(ag):
 
 def cppcheck(ag):
     cmd = subprocess.Popen("/usr/bin/cppcheck --std=c99 --quiet *.c",
-                           shell=True, stdout=subprocess.PIPE, 
+                           shell=True, stdout=subprocess.PIPE,
                            stderr=subprocess.PIPE)
     (stdoutdata, stderrdata)  = cmd.communicate()
     stderrdata = stderrdata.decode('utf-8','replace')
@@ -49,6 +49,8 @@ def stringMustNotContain(ag, haystack, needle, pts):
     else:
         ag.log_addEntry("Output incorrectly contained '" + needle + "'.", pts);
 
+
+
 config = autograder.config()
 settings = config.get()
 subdirName = settings['subdirName']
@@ -63,74 +65,39 @@ if len(sys.argv) > 1:
     dirs = sys.argv[1:]
 
 
+
+desiredFiles = ["Hello.java"]
+expectedExe =  ["Hello.class"]
+
 # For each subdirectory (i.e., student)
 for thisDir in dirs:
     # Skip submissions that do not need regrading. All AUTOGRADE.txt files should be deleted whenever the autograder tests are changed to ensure that the new tests are applied to any already-autograded.
     if os.path.exists(os.path.join(thisDir, "AUTOGRADE.txt")):
         print("SKIPPING %s because it has already been autograded." % thisDir);
         continue
-    
+
     # Set up the autograder
     ag = autograder.autograder("AUTOGRADE.txt", thisDir)
 
+    ag.log_addEntry("=== Verifying Submitted Files ===")
     # Verify that the files are there that we are expecting and look for unexpected files.
-    ag.expect_only_files(["makefile", "Makefile", "*.c", "*.cpp", "*.h", "README", "README.txt", "AUTOGRADE*.txt", "AUTOGRADE.json"], 1)
-    ag.find_unexpected_subdirectories([], 1)
-    ag.expect_file_one_of(["*.c", "*.C", "*.cpp"], 1)
-    ag.expect_file_one_of(["makefile", "Makefile"], 5)
-
-    exe=[ 'mtusort' ] # a list of executables we are expecting
-    # Delete any executables the student might have submitted---we will compile them ourselves.
-    for f in exe:
-        ag.delete(f)
-    # run 'make' in the students directory
-    ag.run_expectExitCode(["make"], expectExitCode=0, deductWrongExit=5, timeout=30)
-    ag.expect_file_all_of(exe, 5) # check that exe got created
-
-    # Figure out if all executables are there.
-    execsExist = ag.get_immediate_executables()
-    allExecs = True
-    for f in exe:
-        if f not in execsExist:
-            allExecs = False
-
-    # If one or more executables are missing.
-    if allExecs == False:
-        # If there is only one executable for this assignment, and
-        # there are executables in execsExist, consider setting exec
-        # to that one!
-        ag.log_addEntry("Can't find expected executables. Giving up.", 50)
-        ag.cleanup()
+    if not ag.expect_only_files(desiredFiles + ["AUTOGRADE*.txt", "AUTOGRADE.json"], 100):
+        ag.log_addEntry("Unexpected file submitted. Submit only files " + " ".join(desiredFiles))
         continue
+    if ag.find_unexpected_subdirectories([], 100):
+        ag.log_addEntry("Unexpected subdirectoryies in submission.")
+        continue
+    if not ag.expect_file_all_of(desiredFiles, 100):
+        ag.log_addEntry("Please submit all of: " + " ".join(desiredFiles))
+        continue
+    ag.log_addEntry("=== File Verification Successful ===")
+    ag.log_addEntry("=== Compiling Java to VM code ===")
+    ag.javaCompile(desiredFiles)
+    ag.log_addEntry("=== Compilation Successfull ===")
 
-    # Check if the executables contain debugging information in them:
-    for e in exe:
-        ag.expect_debugInfo(e, 0)
-
-    ag.log_addEntry("=== Check that Makefile contains appropriate things. ===")
-    mf = ag.find_first_matching_file(["makefile", "Makefile"])
-    if mf:
-        ag.file_must_contain(mf, "-Wall", 5)
-        ag.file_must_contain(mf, "-std=c99", 5)
-
-    # Run "make clean" and verify that files are erased
-    ag.log_addEntry("=== Check that 'make clean' works. ===")
-    ag.run_expectExitCode(["make", "clean"], expectExitCode=0, deductWrongExit=5, timeout=30)
-    ag.incorrect_files(["*.o", "*.s", "*.so", "*.a"]+exe, -1)
-
-    ag.log_addEntry("=== Looking for compilation warnings and errors. ===")
-    compile_warning_errors(ag)
-    ag.log_addEntry("=== Looking for cppcheck warnings and errors. ===")
-    cppcheck(ag)
-
-    ag.log_addEntry("=== Try running with incorrect arguments. ====")
-    ag.pristine() # Reset the directory back to exactly as the student submitted it.
-    ag.run(['make'], quiet=True, timeout=30)
-    ag.run_expectNotExitCode(['./mtusort' ], stdindata=None, expectNotExitCode=0, deductTimeout=5, deductSegfault=5, deductWrongExit=1, timeout=5)
-    ag.run_expectNotExitCode(['./mtusort', 'foobar'], stdindata=None, expectNotExitCode=0, deductTimeout=5, deductSegfault=5, deductWrongExit=1, timeout=30)
-    ag.run_expectNotExitCode(['./mtusort', '/does/not/exist.in', '/does/not/exist.out'], stdindata=None, expectNotExitCode=0, deductTimeout=5, deductSegfault=5, deductWrongExit=1, timeout=30)
+    ag.log_addEntry("=== Running Hello ===")
+    ag.run_JavaStdoutMatch("Hello", stdindata=None, stdouttarget = "Hello World!\n", deductTimeout=100, deductWrongExit=100, deductOutputMismatch=50, timeout=5)
 
     # Insert additional tests here!
-
 
     ag.cleanup()

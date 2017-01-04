@@ -30,7 +30,7 @@ class config():
         else:
             print("autograde-config.json file is missing.")
             exit(1)
-        
+
 
     def get(self):
         return self.settings
@@ -74,9 +74,9 @@ class Command(object):
     def run(self, autogradeobj, timeout=5, stdindata=None, workToDoWhileRunning=None):
         def target():
             # To print current number of used processes, run: ps -eLF | grep $USER | wc -l
-            os.environ["ULIMIT_NPROC"] = str(1024*4)            # Maximum number of processes
-            os.environ["ULIMIT_DATA"]  = str(1024*1024*1024*8)  # 8 GB of memory
-            os.environ["ULIMIT_FSIZE"] = str(1024*1024*1024*50) # 50 GB of space for files
+            os.environ["ULIMIT_NPROC"] = str(4)            # Maximum number of processes
+            os.environ["ULIMIT_DATA"]  = str(1024*1024*1024*1)  # 8 GB of memory
+            os.environ["ULIMIT_FSIZE"] = str(1024*1024*1024*1) # 50 GB of space for files
             autogradeobj.log_addEntry('Process manager: Thread started: '+str(self.cmd))
             limitString  = "Process manager: Limits are "
             limitString += "time="  + str(timeout) + "sec "
@@ -84,9 +84,9 @@ class Command(object):
             limitString += "fsize="  + autogradeobj.humanSize(int(os.environ["ULIMIT_FSIZE"])) + " "
             autogradeobj.log_addEntry(limitString)
             startTime = time.time()
-            
+
             try:
-            # write stderr/stdout to temp file in case students print tons of stuff out.
+                # write stderr/stdout to temp file in case students print tons of stuff out.
                 stdoutFile = tempfile.mkstemp("ag-stdout-")
                 stderrFile = tempfile.mkstemp("ag-stderr-")
                 self.process = subprocess.Popen(self.cmd, stdin=subprocess.PIPE, stdout=stdoutFile[0], stderr=stderrFile[0], preexec_fn=self.setProcessLimits)
@@ -102,7 +102,7 @@ class Command(object):
                 os.close(stdoutFile[0])
                 self.stdoutdata = autogradeobj.get_abbrv_string_from_file(stdoutFile[1])
                 os.unlink(stdoutFile[1])
-                
+
                 os.close(stderrFile[0])
                 self.stderrdata = autogradeobj.get_abbrv_string_from_file(stderrFile[1])
                 os.unlink(stderrFile[1])
@@ -126,7 +126,7 @@ class Command(object):
             if workToDoWhileRunning:
                 time.sleep(.5)  # give time for process to start.
                 workToDoWhileRunning()
-                
+
             thread.join(timeout)
 
         # Without this, Ctrl+C will cause python to exit---but we will
@@ -166,9 +166,9 @@ class autograder():
         # directory when the autograder is complete (i.e., cleanup()
         # is called).
         self.logFile = tempfile.mkstemp(prefix="ag-"+username+"-report-")[1]
-        
+
         # Absolute path that we need to chdir back to when finished
-        self.origwd = os.getcwd() 
+        self.origwd = os.getcwd()
 
         # Absolute path to the folder containing the student
         # submission.
@@ -189,7 +189,7 @@ class autograder():
 
         # Change into working directory
         os.chdir(self.workingDirectory)
-        
+
         # Print a header for this student to the console and log file.
         with open(self.logFile, "a") as myfile:
             msg = "=== " + username
@@ -202,7 +202,7 @@ class autograder():
 
         self.log_addEntry("Autograder created this report at: %s" % str(datetime.datetime.now().ctime()))
 
-            
+
         # Add some basic information to AUTOGRADE.txt so that students
         # can figure out exactly which submission the autograder
         # graded. This data is retrieved from the AUTOGRADE.json
@@ -228,15 +228,15 @@ class autograder():
 
         # Put submitter's name or group name in report
         if 'canvasGroup' in metadata and \
-           'name' in metadata['canvasGroup']:
-            self.log_addEntry("Your group name: " + metadata['canvasGroup']['name'])
+                'name' in metadata['canvasGroup']:
+                    self.log_addEntry("Your group name: " + metadata['canvasGroup']['name'])
         else: # if not a group assignment
             if 'canvasStudent' in metadata and \
-               'short_name' in metadata['canvasStudent']:
-                self.log_addEntry("Your name: " + metadata['canvasStudent']['short_name'])
+                    'short_name' in metadata['canvasStudent']:
+                        self.log_addEntry("Your name: " + metadata['canvasStudent']['short_name'])
 
         self.log_addEntry("You initially have "+str(self.logPointsTotal)+" points; autograder will deduct points below; total at bottom.")
-                
+
         # Adjust grade based on the contents of AUTOGRADE-MANUAL.txt
         # that the teacher may have added to the directory. This file
         # will contain the number of points to deduct, a space, and
@@ -255,12 +255,12 @@ class autograder():
         shutil.rmtree(self.workingDirectory)
         # Appends the student's total score to the log file.
         msg = "TOTAL: " + str(self.logPointsTotal) + "\n"
-        
+
         if self.logPointsTotal < 0:
             msg = msg + "Ouch! That score is less than 0! This can happen because the autograder starts by giving everybody 100 points and then deducts points for any problem it sees (this approach is not perfect). We won't give you a score less than 0. If there is a simple change that makes your program work correctly, the instructor/TA/grader might give you a much, much higher score.\n"
 
         msg += "IMPORTANT: If this report is sent prior to the assignment deadline, remember that the autograder tests and scoring may change significantly. If this report is sent after the assignment deadline, remember that the instructor or TA will use this report to assist with grading---and your actual grade may differ from what this report says. If you have any information that the instructor or TA should know about when grading your submission, please leave a comment on your submission in Canvas."
-            
+
         with open(self.logFile, "a") as myfile:
             myfile.write(msg)
             myfile.close()
@@ -408,6 +408,8 @@ class autograder():
         for f in filesInDir:
             filesize = "(" + self.humanSize(os.stat(f).st_size) + ")"
             self.log_addEntry("Unexpected file: \""+str(f)+"\" "+filesize, deductPoints)
+        return len(filesInDir) == 0
+
 
     def incorrect_files(self, wrongFiles, deductPoints=0):
         """If any of the files in "files" exist, deduct points. Filenames can be regular expressions."""
@@ -415,7 +417,7 @@ class autograder():
         for f in wrongFiles:
             for g in glob.glob(f):
                 self.log_addEntry("This file shouldn't exist: \"" + g + "\"", deductPoints)
-        
+
 
     def find_unexpected_subdirectories(self, expected_dirs, deductPoints = 0):
         """Identify directories that the student submitted that are not in the expected_files list and deduct points for each one."""
@@ -428,7 +430,7 @@ class autograder():
         # If there are other files, deduct points for them.
         for f in dirs:
             self.log_addEntry("Unexpected directory: " + str(f), deductPoints)
-        
+
 
     def log_and_print(self, msg):
         """Prints a message to the console and to the log file."""
@@ -543,12 +545,12 @@ class autograder():
 
     def expect_debugInfo(self, exe, deductNoDebug=0):
         cmd = subprocess.Popen("/usr/bin/readelf --debug-dump=info " + exe,
-                               shell=True, stdout=subprocess.PIPE)
+                shell=True, stdout=subprocess.PIPE)
         (stdoutdata, stderrdata)  = cmd.communicate()
         if len(stdoutdata) < 10:
             self.log_addEntry("'" + exe + "' does not contain debugging information.", deductNoDebug)
         else:
-	        self.log_addEntry("'" + exe + "' contains debugging information.", 0)
+            self.log_addEntry("'" + exe + "' contains debugging information.", 0)
 
     def expect_md5(self, filename, expectMd5, deductMissingFile=0, deductWrongMd5=0):
         if not os.path.exists(filename):
@@ -590,5 +592,37 @@ class autograder():
             if num < 1024.0:
                 return "%d%s" % (round(num), x)
             num /= 1024.0
+
+
+    def run_JavaStdoutMatch(self, exe, stdindata=None, stdouttarget=None, timeout=5, deductTimeout=0, deductWrongExit=0, deductOutputMismatch=0):
+        (didRun, tooSlow, retcode, stdoutdata, stderrdata) = self.run(["java", exe], stdindata=stdindata, deductTimeout=deductTimeout, deductSegfault=deductTimeout, timeout=timeout, workToDoWhileRunning=None)
+        # Don't deduct points for wrong exit code if we are already deducting points for segfault.
+        if retcode != 0:
+            self.log_addEntry("Exit status: Expecting exit code " + str(expectExitCode) + " but found " + str(retcode), deductWrongExit)
+            self.log_addEntry("Error message was: " + stderrdata)
+            return False
+        else:
+            self.log_addEntry("Program exited normally")
+            if stdouttarget == stdoutdata:
+                self.log_addEntry("Program output was correct.")
+                return True
+            else:
+                self.log_addEntry("Error: expected program output " + stdouttarget, deductOutputMismatch)
+                self.log_addEntry("Received program output: " + stdoutdata)
+                return False
+
+    def javaCompile(self, fileList):
+        for f in fileList:
+            (didRun, tooSlow, retcode, stdoutdata, stderrdata) = self.run(["javac",f], stdindata="", deductTimeout=100, deductSegfault=100, timeout=5, workToDoWhileRunning=None)
+            if retcode != 0:
+                self.log_addEntry("Exit status: Expecting exit code " + str(expectExitCode) + " but found " + str(retcode), deductWrongExit)
+                self.log_addEntry("Error message was: " + stderrdata)
+                return False
+            else:
+                (didRun, tooSlow, retcode, stdoutdata, stderrdata) =  self.run(["test", "-e", f.split(".")[0] + ".class"], stdindata="", deductTimeout=100, deductSegfault=100, timeout=5, workToDoWhileRunning=None)
+                if (not didRun) or tooSlow or retcode != 0:
+                    self.log_addEntry("MARKING SYSTEM ERRROR: Unexplained compilation failure. Contact instructor ASAP.")
+                    return False
+                return True
 
 
