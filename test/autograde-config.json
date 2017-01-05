@@ -1,0 +1,12 @@
+{                                               
+    "courseName":"CSTest Course", 
+    "assignmentName":"Test Assignment",          
+    "subdirName":"Test Assignment",                    
+    "domainName":"ncf.edu",                       
+    "emailSubject":"Test Assignment Results",     
+    "emailFrom":"jdoucette@ncf.edu",              
+    "emailFromName":"John Doucette",             
+    "emailPassword":"",                
+    "emailSmtp":"smtp.gmail.com",              
+    "emailSmtpPort":"587"                     
+}
