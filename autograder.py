@@ -74,9 +74,9 @@ class Command(object):
     def run(self, autogradeobj, timeout=5, stdindata=None, workToDoWhileRunning=None):
         def target():
             # To print current number of used processes, run: ps -eLF | grep $USER | wc -l
-            os.environ["ULIMIT_NPROC"] = str(4)            # Maximum number of processes
-            os.environ["ULIMIT_DATA"]  = str(1024*1024*1024*1)  # 8 GB of memory
-            os.environ["ULIMIT_FSIZE"] = str(1024*1024*1024*1) # 50 GB of space for files
+            os.environ["ULIMIT_NPROC"] = str(64)            # Maximum number of processes
+            os.environ["ULIMIT_DATA"]  = str(1024*1024*1024*32)  # 8 GB of memory
+            os.environ["ULIMIT_FSIZE"] = str(1024*1024*1024*50) # 50 GB of space for files
             autogradeobj.log_addEntry('Process manager: Thread started: '+str(self.cmd))
             limitString  = "Process manager: Limits are "
             limitString += "time="  + str(timeout) + "sec "
@@ -595,7 +595,7 @@ class autograder():
 
 
     def run_JavaStdoutMatch(self, exe, stdindata=None, stdouttarget=None, timeout=5, deductTimeout=0, deductWrongExit=0, deductOutputMismatch=0):
-        (didRun, tooSlow, retcode, stdoutdata, stderrdata) = self.run(["java", exe], stdindata=stdindata, deductTimeout=deductTimeout, deductSegfault=deductTimeout, timeout=timeout, workToDoWhileRunning=None)
+        (didRun, tooSlow, retcode, stdoutdata, stderrdata) = self.run(["java", "-Xms256m","-Xmx512m",  exe], stdindata=stdindata, deductTimeout=deductTimeout, deductSegfault=deductTimeout, timeout=timeout, workToDoWhileRunning=None)
         # Don't deduct points for wrong exit code if we are already deducting points for segfault.
         if retcode != 0:
             self.log_addEntry("Exit status: Expecting exit code " + str(expectExitCode) + " but found " + str(retcode), deductWrongExit)
@@ -613,7 +613,7 @@ class autograder():
 
     def javaCompile(self, fileList):
         for f in fileList:
-            (didRun, tooSlow, retcode, stdoutdata, stderrdata) = self.run(["javac",f], stdindata="", deductTimeout=100, deductSegfault=100, timeout=5, workToDoWhileRunning=None)
+            (didRun, tooSlow, retcode, stdoutdata, stderrdata) = self.run(["javac","-J-Xmx756m", f], stdindata="", deductTimeout=100, deductSegfault=100, timeout=5, workToDoWhileRunning=None)
             if retcode != 0:
                 self.log_addEntry("Exit status: Expecting exit code " + str(expectExitCode) + " but found " + str(retcode), deductWrongExit)
                 self.log_addEntry("Error message was: " + stderrdata)

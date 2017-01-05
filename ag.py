@@ -26,7 +26,7 @@ if len(sys.argv) < 2:
 
     print()
     print(" email [usernames...]")
-    print("     Sends emails containing the AUTOGRADE.html reports to students as needed.")
+    print("     Sends emails containing the AUTOGRADE.txt reports to students as needed.")
 
     print()
     print(" emailsent [usernames...]")
@@ -43,7 +43,7 @@ if len(sys.argv) < 2:
 
     print()
     print(" regrade [usernames...]")
-    print("     Erase all AUTOGRADE.html files to force complete regrading. Useful when the ag-grade.py script is changed by the instructor.")
+    print("     Erase all AUTOGRADE.txt files to force complete regrading. Useful when the ag-grade.py script is changed by the instructor.")
 
     print()
     print(" view username")
@@ -137,12 +137,12 @@ def stats(dirs):
             emailed=""
 
         score="  ---"
-        if 'autograderScore' in metadata and os.path.exists(os.path.join(d, "AUTOGRADE.html")):
+        if 'autograderScore' in metadata and os.path.exists(os.path.join(d, "AUTOGRADE.txt")):
                 score = "%5d" % metadata['autograderScore']
                 score_list.append(int(metadata['autograderScore']))
 
         scoreOrig="      ---"
-        if 'autograderScorePreAdjustment' in metadata and os.path.exists(os.path.join(d, "AUTOGRADE.html")):
+        if 'autograderScorePreAdjustment' in metadata and os.path.exists(os.path.join(d, "AUTOGRADE.txt")):
                 scoreOrig = "%9d" % metadata['autograderScorePreAdjustment']
 
 
@@ -204,13 +204,13 @@ def emailLogin(senderEmail, mypassword):
     emailSession.ehlo()
     emailSession.starttls()
     emailSession.ehlo
-    emailSession.login(senderEmail, mypassword)
+    #emailSession.login(senderEmail, mypassword)
 
 def emailLogout():
     global emailSession
     emailSession.quit()
 
-def emailStudent(senderEmail, studentUsername, subject, htmlattach, message):
+def emailStudent(senderEmail, studentUsername, subject, txtattach, message):
     if '@' in studentUsername:
         recipients = [ studentUsername ]
     else:
@@ -237,13 +237,13 @@ def emailStudent(senderEmail, studentUsername, subject, htmlattach, message):
     msg['Subject'] = subject
     msg['From'] = formataddr( (emailFromName, emailFrom) )
     msg['To'] = ', '.join(recipients)
-    part = MIMEBase("text", "html")
-    part.set_payload(htmlattach)
-    encoders.encode_base64(part)
-    part.add_header('Content-Disposition', 'attachment; filename="{0}"'.format("AUTOGRADE.html"))
-    msg.attach(part)
+    #part = MIMEBase("text", "txt")
+    #part.set_payload(txtattach)
+    #encoders.encode_base64(part)
+    #part.add_header('Content-Disposition', 'attachment; filename="{0}"'.format("AUTOGRADE.txt"))
+    #msg.attach(part)
 
-    part = MIMEText(message)
+    part = MIMEText(txtattach)
     msg.attach(part)
     emailSession.sendmail(senderEmail, recipients, msg.as_string())
 
@@ -257,7 +257,7 @@ def getAllScores():
         if os.path.exists(metadataFile):
             with open(metadataFile, "r") as f:
                 metadata = json.load(f)
-        if 'autograderScore' in metadata and os.path.exists(os.path.join(d, "AUTOGRADE.html")):
+        if 'autograderScore' in metadata and os.path.exists(os.path.join(d, "AUTOGRADE.txt")):
             allScores.append(int(metadata['autograderScore']))
     allScores.sort()
     return allScores;
@@ -291,20 +291,9 @@ def emailSend(dirs):
     message = "Your autograder report is attached. "
     allScores = getAllScores()
     totalAttempts = getSumOfAttempts()
-    if len(allScores) > 5:
-        message += "%d students have made a total of %d submissions (an average of about %d attempts per student). " % (len(allScores), totalAttempts, int(round(totalAttempts/len(allScores))))
-        message += "The average score is %d. " % int(round(statistics.mean(allScores)))
-        message += "The median score is %d. " % int(round(statistics.median(allScores)))
-        try:
-            message += "The most common score is %d. " % statistics.mode(allScores)
-        except statistics.StatisticsError:
-            # If there is more than one mode, this exception occurs.
-            pass
-        message += "The scores range from %d to %d. " % (allScores[0], allScores[-1])
-
     # send email messages
     for thisDir in dirs:
-        agFilename = thisDir + "/AUTOGRADE.html"
+        agFilename = thisDir + "/AUTOGRADE.txt"
         metadataFile = thisDir + "/AUTOGRADE.json"
         metadata = {}
         if os.path.exists(metadataFile):
@@ -314,7 +303,7 @@ def emailSend(dirs):
             print("%-12s SKIPPING - Already emailed most recent report." % thisDir)
             continue;
         if not os.path.exists(agFilename):
-            print("%-12s SKIPPING - AUTOGRADE.html is missing." % thisDir)
+            print("%-12s SKIPPING - AUTOGRADE.txt is missing." % thisDir)
             continue;
 
         # Start by assuming directory name is the username
@@ -432,7 +421,7 @@ elif sys.argv[1] == 'emailsent':
 
 elif sys.argv[1] == 'view':
     if len(sys.argv) == 3:
-        path = os.path.join(subdirName, sys.argv[2], "AUTOGRADE.html")
+        path = os.path.join(subdirName, sys.argv[2], "AUTOGRADE.txt")
         print("viewing: %s"%path)
         os.system('links -codepage utf-8 -dump -width %d %s | less' %
                   (shutil.get_terminal_size((80,20)).columns,
@@ -444,7 +433,7 @@ elif sys.argv[1] == 'view':
 
 elif sys.argv[1] == 'viewgui':
     if len(sys.argv) == 3:
-        path = os.path.join(subdirName, sys.argv[2], "AUTOGRADE.html")
+        path = os.path.join(subdirName, sys.argv[2], "AUTOGRADE.txt")
         print("viewing: %s"%path)
         os.execvp('xdg-open', ['xdg-open',path])
     else:
