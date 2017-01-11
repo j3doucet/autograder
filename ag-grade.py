@@ -2,6 +2,9 @@
 import autograder, canvas
 import subprocess
 import shutil, os, stat, sys, re
+import glob
+
+
 
 if sys.hexversion < 0x030000F0:
     print("This script requires Python 3")
@@ -61,13 +64,17 @@ dirs = [name for name in os.listdir(subdirName) if os.path.isdir(os.path.join(su
 dirs.sort()
 os.chdir(subdirName)
 
-if len(sys.argv) > 1:
-    dirs = sys.argv[1:]
+rubricRoot = sys.argv[1]
+print(rubricRoot)
+questions = [name for name in os.listdir(rubricRoot) if os.path.isdir(os.path.join(rubricRoot, name))]
+print(questions)
+
+pointTotal = 0
+for q in questions:
+    pointTotal += int(open(os.path.join(rubricRoot, q, "points")).readline().split()[0])
 
 
-
-desiredFiles = ["Hello.java"]
-expectedExe =  ["Hello.class"]
+                
 
 # For each subdirectory (i.e., student)
 for thisDir in dirs:
@@ -77,26 +84,54 @@ for thisDir in dirs:
         continue
 
     # Set up the autograder
-    ag = autograder.autograder("AUTOGRADE.txt", thisDir)
+    ag = autograder.autograder("AUTOGRADE.txt", thisDir, totalPoints=pointTotal)
+    submissionRoot = os.getcwd() #creating the autograder implicitly changes to a sandbox dir.
 
-    ag.log_addEntry("=== Verifying Submitted Files ===")
-    # Verify that the files are there that we are expecting and look for unexpected files.
-    if not ag.expect_only_files(desiredFiles + ["AUTOGRADE*.txt", "AUTOGRADE.json"], 100):
-        ag.log_addEntry("Unexpected file submitted. Submit only files " + " ".join(desiredFiles))
-        continue
-    if ag.find_unexpected_subdirectories([], 100):
-        ag.log_addEntry("Unexpected subdirectoryies in submission.")
-        continue
-    if not ag.expect_file_all_of(desiredFiles, 100):
-        ag.log_addEntry("Please submit all of: " + " ".join(desiredFiles))
-        continue
-    ag.log_addEntry("=== File Verification Successful ===")
-    ag.log_addEntry("=== Compiling Java to VM code ===")
-    ag.javaCompile(desiredFiles)
-    ag.log_addEntry("=== Compilation Successfull ===")
 
-    ag.log_addEntry("=== Running Hello ===")
-    ag.run_JavaStdoutMatch("Hello", stdindata=None, stdouttarget = "Hello World!\n", deductTimeout=100, deductWrongExit=100, deductOutputMismatch=50, timeout=5)
+    for question in sorted(questions):
+        questiondir = os.path.join(rubricRoot, question)
+        ag.log_addEntry("=== Marking Question " + question + " ===")
+        desiredFiles = open(os.path.join(questiondir,"requiredFiles")).read().splitlines()
+        expectedExe = open(os.path.join(questiondir,"buildTargets")).read().splitlines()
+        permittedFiles = open(os.path.join(questiondir,"allowedFiles")).read().splitlines()
+        pointsForQuestion = int(open(os.path.join(rubricRoot, question, "points")).readline().split()[0])
+        testlist = glob.glob(os.path.join(rubricRoot,question,"*.in.*"))
+        pointsLeftAtStart = ag.getPointsLeft()
+
+        ag.log_addEntry("=== Verifying Submitted Files ===")
+        submissionQuestionDir = os.path.join(submissionRoot, question)
+        if os.path.exists(submissionQuestionDir) and os.path.isdir(submissionQuestionDir):
+            os.chdir(submissionQuestionDir) 
+        else:
+            ag.expect_file_all_of([question], pointsForQuestion)
+            continue
+        # Verify that the files are there that we are expecting and look for unexpected files.
+        if not ag.expect_only_files(permittedFiles + ["AUTOGRADE*.txt", "AUTOGRADE.json"], pointsForQuestion):
+            ag.log_addEntry("Unexpected file submitted. Submit only files " + " ".join(desiredFiles))
+            continue
+        if ag.find_unexpected_subdirectories([], pointsForQuestion):
+            ag.log_addEntry("Unexpected subdirectoryies in submission.")
+            continue
+        if not ag.expect_file_all_of(desiredFiles, pointsForQuestion):
+            ag.log_addEntry("Please submit all of: " + " ".join(desiredFiles))
+            continue
+        ag.log_addEntry("=== File Verification Successful ===")
+        if len(expectedExe) > 0:
+            ag.log_addEntry("=== Compiling Java to VM code ===")
+            ag.javaCompile(desiredFiles)
+            ag.log_addEntry("=== Compilation Successfull ===")
+
+        for test in testlist:
+            basefile = test.split(".")
+            outfile = basefile[0]+".expect."+basefile[2]
+            commandfile = basefile[0]+".command."+basefile[2]
+            ag.log_addEntry("=== Running Test " + test + "===")
+            ag.run_JavaStdoutMatch(open(commandfile).read(), stdindata=open(test).read(), stdouttarget = open(outfile).read(), deductTimeout=pointsForQuestion/len(testlist), deductWrongExit=pointsForQuestion/len(testlist), deductOutputMismatch=pointsForQuestion/2/len(testlist), timeout=15)
+
+        pointsLeftAtEnd = ag.getPointsLeft()
+        questionScore = pointsForQuestion - (pointsLeftAtStart - pointsLeftAtEnd)
+        ag.log_addEntry("=== Score on Question " + question + ": " 
+           + str(questionScore) + "/" + str(pointsForQuestion) + " ===")
 
     # Insert additional tests here!
 

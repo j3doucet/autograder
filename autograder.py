@@ -74,7 +74,7 @@ class Command(object):
     def run(self, autogradeobj, timeout=5, stdindata=None, workToDoWhileRunning=None):
         def target():
             # To print current number of used processes, run: ps -eLF | grep $USER | wc -l
-            os.environ["ULIMIT_NPROC"] = str(64)            # Maximum number of processes
+            os.environ["ULIMIT_NPROC"] = str(256)            # Maximum number of processes
             os.environ["ULIMIT_DATA"]  = str(1024*1024*1024*32)  # 8 GB of memory
             os.environ["ULIMIT_FSIZE"] = str(1024*1024*1024*50) # 50 GB of space for files
             autogradeobj.log_addEntry('Process manager: Thread started: '+str(self.cmd))
@@ -157,8 +157,12 @@ class Command(object):
 
 
 class autograder():
+    def getPointsLeft(self):
+        return self.logPointsTotal
+
     def __init__(self, logFile, username, totalPoints=100):
         self.logPointsTotal = totalPoints
+        self.logPointsMax = totalPoints
 
         # Location of the AUTOGRADE.txt file. This file is neither in
         # the working directory nor in the actual submission
@@ -254,7 +258,7 @@ class autograder():
         os.chdir(self.origwd)
         shutil.rmtree(self.workingDirectory)
         # Appends the student's total score to the log file.
-        msg = "TOTAL: " + str(self.logPointsTotal) + "\n"
+        msg = "TOTAL: " + str(self.logPointsTotal) + "/"+str(self.logPointsMax)+"\n"
 
         if self.logPointsTotal < 0:
             msg = msg + "Ouch! That score is less than 0! This can happen because the autograder starts by giving everybody 100 points and then deducts points for any problem it sees (this approach is not perfect). We won't give you a score less than 0. If there is a simple change that makes your program work correctly, the instructor/TA/grader might give you a much, much higher score.\n"
@@ -595,10 +599,15 @@ class autograder():
 
 
     def run_JavaStdoutMatch(self, exe, stdindata=None, stdouttarget=None, timeout=5, deductTimeout=0, deductWrongExit=0, deductOutputMismatch=0):
-        (didRun, tooSlow, retcode, stdoutdata, stderrdata) = self.run(["java", "-Xms256m","-Xmx512m",  exe], stdindata=stdindata, deductTimeout=deductTimeout, deductSegfault=deductTimeout, timeout=timeout, workToDoWhileRunning=None)
+        ssFname = "./__testCommand.sh"
+        shellScript = open(ssFname, 'w')
+        shellScript.write(exe)
+        shellScript.close() 
+        (didRun, tooSlow, retcode, stdoutdata, stderrdata) = self.run(["/bin/bash", ssFname], stdindata=stdindata, deductTimeout=deductTimeout, deductSegfault=deductTimeout, timeout=timeout, workToDoWhileRunning=None)
+        #os.remove(ssFname)
         # Don't deduct points for wrong exit code if we are already deducting points for segfault.
         if retcode != 0:
-            self.log_addEntry("Exit status: Expecting exit code " + str(expectExitCode) + " but found " + str(retcode), deductWrongExit)
+            self.log_addEntry("Exit status: Expecting exit code 0 but found " + str(retcode), deductWrongExit)
             self.log_addEntry("Error message was: " + stderrdata)
             return False
         else:
@@ -607,8 +616,8 @@ class autograder():
                 self.log_addEntry("Program output was correct.")
                 return True
             else:
-                self.log_addEntry("Error: expected program output " + stdouttarget, deductOutputMismatch)
-                self.log_addEntry("Received program output: " + stdoutdata)
+                self.log_addEntry("Error: expected program output:" + stdouttarget, deductOutputMismatch)
+                self.log_addEntry("Received program output:" + stdoutdata)
                 return False
 
     def javaCompile(self, fileList):

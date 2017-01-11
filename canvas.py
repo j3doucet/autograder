@@ -681,6 +681,7 @@ class canvas():
                 shutil.move(destDir+"/"+onlydirs[0], tmpDir)
                 # Move the files files in the temporary directory into the destination directory
                 for f in os.listdir(tmpDir):
+                    print("Moving " + f + " to " + destDir)
                     shutil.move(tmpDir+"/"+f, destDir)
                 # Remove temporary directory
                 shutil.rmtree("/tmp/autograder-tmp-dir", ignore_errors=True)

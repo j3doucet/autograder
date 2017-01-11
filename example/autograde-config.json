@@ -4,9 +4,9 @@
     "subdirName":"Test Assignment",                    
     "domainName":"ncf.edu",                       
     "emailSubject":"Test Assignment Results",     
-    "emailFrom":"jdoucette@ncf.edu",              
+    "emailFrom":"autograder@dsgpu02.network.ncf.edu",              
     "emailFromName":"John Doucette",             
     "emailPassword":"",                
-    "emailSmtp":"smtp.gmail.com",              
-    "emailSmtpPort":"587"                     
+    "emailSmtp":"localhost",              
+    "emailSmtpPort":"25"                     
 }

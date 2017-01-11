@@ -1,0 +1,15 @@
+#!/bin/bash
+processing-java --sketch=`pwd` --run 1>&2 2>/dev/null
+if [ -e "Q2.pdf" ]
+then
+  cp Q2.pdf ~/Q2.pdf
+  hash=`cat Q2.pdf | grep -v "^<<" | md5sum | cut -f1 -d' '`
+  if [ $hash == "836046c57bc730a413b7607c66356779" ]
+  then
+    echo "I see a blue circle."
+  else
+    echo "Something's not right. Your blue circle doesn't look like mine."
+  fi
+else
+  echo "Error: Expected a file called Q2.pdf to be created. No such file made."
+fi
